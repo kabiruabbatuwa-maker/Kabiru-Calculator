@@ -1,0 +1,671 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B1F3A">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>Kabiru Calculator</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>
+/* Layout: a tall scientific keypad card (5 columns) with the history list beside it on wide screens and below it on phones. Navy, gold and teal come from the KM logo. */
+:root {
+  --bg: #E9EEF4;
+  --card: #FFFFFF;
+  --ink: #0B1F3A;
+  --muted: #5B6B80;
+  --line: #D5DDE8;
+  --key: #E8EEF5;
+  --key-hover: #DCE5F0;
+  --fn: #D3EEEC;
+  --fn-ink: #0B5F59;
+  --gold: #E5B04A;
+  --gold-hover: #EBBE68;
+  --teal: #12877F;
+  --teal-hover: #0F746D;
+  --on-teal: #FFFFFF;
+  --focus: #12877F;
+  --font-display: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Inter", "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #06122A; --card: #0B1F3A; --ink: #EEF3F9; --muted: #8FA3BD; --line: #1D3860;
+    --key: #15305A; --key-hover: #1C3B6C; --fn: #0F3F48; --fn-ink: #7FE0D7;
+    --gold: #E5B04A; --gold-hover: #F0C46A; --teal: #2BC1B6; --teal-hover: #4AD3C9; --on-teal: #06233A;
+    --focus: #2BC1B6; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #06122A; --card: #0B1F3A; --ink: #EEF3F9; --muted: #8FA3BD; --line: #1D3860;
+  --key: #15305A; --key-hover: #1C3B6C; --fn: #0F3F48; --fn-ink: #7FE0D7;
+  --gold: #E5B04A; --gold-hover: #F0C46A; --teal: #2BC1B6; --teal-hover: #4AD3C9; --on-teal: #06233A;
+  --focus: #2BC1B6; color-scheme: dark;
+}
+html{color-scheme:light dark}
+html,body{margin:0;min-height:100%}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+[hidden]{display:none!important}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px;
+  padding-block: 20px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  min-height: 100%;
+}
+.wrap { max-width: 800px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; justify-content: center; }
+.calc { flex: 1 1 340px; max-width: 420px; min-width: 0; background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand svg { flex: none; }
+.brand h1 { font-family: var(--font-display); font-size: 1.05rem; font-weight: 600; margin: 0; letter-spacing: 0.01em; line-height: 1.2; }
+.brand p { margin: 0; font-size: 0.75rem; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
+.screen { background: var(--bg); border-radius: 14px; padding: 10px 14px 12px; min-height: 126px; display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-end; gap: 4px; overflow: hidden; }
+.status { align-self: stretch; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-height: 24px; margin-bottom: auto; }
+.chip { font-family: var(--font-display); font-size: 0.7rem; font-weight: 600; letter-spacing: 0.06em; padding: 2px 7px; border-radius: 999px; background: var(--card); color: var(--muted); border: 1px solid var(--line); }
+.chip.on { background: var(--gold); color: #0B1F3A; border-color: var(--gold); }
+.copy { margin-left: auto; font: inherit; font-size: 0.8rem; color: var(--teal); background: none; border: 0; cursor: pointer; padding: 2px 6px; border-radius: 6px; }
+.expr { color: var(--muted); font-size: 1rem; min-height: 1.4em; max-width: 100%; overflow-x: auto; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.result { font-family: var(--font-display); font-weight: 600; font-size: 2.3rem; line-height: 1.1; max-width: 100%; overflow-x: auto; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.result.mid { font-size: 1.8rem; }
+.result.small { font-size: 1.35rem; }
+.result.err { font-size: 1.05rem; color: var(--muted); font-family: var(--font-body); font-weight: 500; }
+.keys { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.keys button {
+  font: inherit; font-family: var(--font-display); font-size: 1.05rem; font-weight: 500; color: var(--ink);
+  background: var(--key); border: 0; border-radius: 11px; height: 46px; padding: 0 2px; cursor: pointer; font-variant-numeric: tabular-nums;
+  transition: background 0.12s, transform 0.06s;
+}
+.keys button:hover { background: var(--key-hover); }
+.keys button:active { transform: scale(0.96); }
+.keys button.sm { font-size: 0.85rem; }
+.keys button:focus-visible, .copy:focus-visible, .hist-clear:focus-visible, .hist li button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.keys .num { font-weight: 600; font-size: 1.2rem; }
+.keys .fn { background: var(--fn); color: var(--fn-ink); }
+.keys .fn:hover { background: var(--key-hover); }
+.keys .clr { background: var(--fn); color: var(--fn-ink); font-weight: 600; }
+.keys .mem { background: transparent; border: 1px solid var(--line); color: var(--muted); font-size: 0.85rem; height: 38px; }
+.keys .mem:hover { background: var(--key); }
+.keys .mode { background: transparent; border: 1px solid var(--line); color: var(--ink); font-size: 0.85rem; height: 38px; }
+.keys .mode:hover { background: var(--key); }
+.keys .mode[aria-pressed="true"] { background: var(--teal); border-color: var(--teal); color: var(--on-teal); }
+.keys .op { background: var(--gold); color: #0B1F3A; font-size: 1.3rem; }
+.keys .op:hover { background: var(--gold-hover); }
+.keys .eq { background: var(--teal); color: var(--on-teal); font-size: 1.4rem; }
+.keys .eq:hover { background: var(--teal-hover); }
+.hint { margin: 0; font-size: 0.75rem; color: var(--muted); line-height: 1.5; }
+.hist { flex: 1 1 240px; max-width: 340px; min-width: 0; background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 16px; }
+.hist-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.hist h2 { font-family: var(--font-display); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0; font-weight: 600; }
+.hist-clear { font: inherit; font-size: 0.85rem; color: var(--teal); background: none; border: 0; cursor: pointer; padding: 4px 6px; border-radius: 6px; }
+.hist ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.hist li button { width: 100%; text-align: right; font: inherit; background: none; border: 0; border-top: 1px solid var(--line); padding: 10px 4px; cursor: pointer; color: var(--ink); border-radius: 0; }
+.hist li:first-child button { border-top: 0; }
+.hist li button:hover { background: var(--bg); }
+.hist .h-expr { display: block; color: var(--muted); font-size: 0.85rem; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.hist .h-res { display: block; font-family: var(--font-display); font-weight: 600; font-size: 1.15rem; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.empty { color: var(--muted); font-size: 0.9rem; margin: 6px 0 0; }
+@media (prefers-reduced-motion: reduce) { .keys button { transition: none; } }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <main class="calc" aria-label="Scientific calculator">
+    <div class="brand">
+      <svg width="38" height="38" viewBox="0 0 36 36" role="img" aria-label="KM logo">
+        <rect width="36" height="36" rx="9" fill="#0B1F3A"/>
+        <text x="18" y="22" text-anchor="middle" font-family="Space Grotesk, Segoe UI, sans-serif" font-weight="700" font-size="15" fill="#E5B04A">KM</text>
+        <rect x="8" y="27" width="20" height="2.5" rx="1.25" fill="#2BC1B6"/>
+      </svg>
+      <div>
+        <h1>Kabiru Calculator</h1>
+        <p>Scientific</p>
+      </div>
+    </div>
+    <div class="screen" aria-live="polite">
+      <div class="status"><span id="chips"></span><button class="copy" id="copyBtn" type="button">Copy</button></div>
+      <div class="expr" id="expr"></div>
+      <div class="result" id="result">0</div>
+    </div>
+    <div class="keys" id="keys"></div>
+    <p class="hint">Keyboard: digits, + − * / ^ ( ) . % ! Enter, Backspace, Esc. Letters: s sin, c cos, t tan, l log, n ln, r √, p π, e Euler's number.</p>
+  </main>
+  <aside class="hist" aria-label="History">
+    <div class="hist-head">
+      <h2>History</h2>
+      <button class="hist-clear" id="clearHist" type="button">Clear</button>
+    </div>
+    <ul id="histList"></ul>
+    <p class="empty" id="histEmpty">Finished calculations appear here. Tap one to reuse its answer.</p>
+  </aside>
+</div>
+
+<script>
+(function () {
+// ENGINE START
+var FUNCS = ['asinh','acosh','atanh','asin','acos','atan','sinh','cosh','tanh','sin','cos','tan','log','ln','abs'];
+var POSTS = '%²³!';
+var SUPD = {'0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹','-':'⁻'};
+
+function tokenize(s) {
+  var out = [], i = 0, m, k, f;
+  s = s.replace(/-/g, '−').replace(/\*/g, '×').replace(/\//g, '÷');
+  while (i < s.length) {
+    var c = s.charAt(i), rest = s.slice(i);
+    if (c === ' ') { i++; continue; }
+    m = /^(?:\d+\.?\d*|\.\d+)(?:E[+−]?\d*)?/.exec(rest);
+    if (m) { out.push({ t: 'num', v: m[0] }); i += m[0].length; continue; }
+    if (c === 'π') { out.push({ t: 'const', v: 'π' }); i++; continue; }
+    if (rest.indexOf('Ans') === 0) { out.push({ t: 'const', v: 'Ans' }); i += 3; continue; }
+    if (rest.indexOf('mod') === 0) { out.push({ t: 'op', v: 'mod' }); i += 3; continue; }
+    f = null;
+    for (k = 0; k < FUNCS.length; k++) { if (rest.indexOf(FUNCS[k]) === 0) { f = FUNCS[k]; break; } }
+    if (f) { out.push({ t: 'func', v: f }); i += f.length; continue; }
+    if (c === 'e') { out.push({ t: 'const', v: 'e' }); i++; continue; }
+    if ('+−×÷^PC'.indexOf(c) !== -1) { out.push({ t: 'op', v: c }); i++; continue; }
+    if (c === '(') { out.push({ t: 'lp', v: c }); i++; continue; }
+    if (c === ')') { out.push({ t: 'rp', v: c }); i++; continue; }
+    if (c === '√' || c === '∛') { out.push({ t: 'root', v: c }); i++; continue; }
+    if (POSTS.indexOf(c) !== -1) { out.push({ t: 'post', v: c }); i++; continue; }
+    throw new Error('syntax');
+  }
+  return out;
+}
+
+function isInt(n) { return Math.floor(n) === n; }
+function fact(n) {
+  if (n < 0 || !isInt(n)) throw new Error('domain');
+  if (n > 170) throw new Error('overflow');
+  var r = 1, i;
+  for (i = 2; i <= n; i++) r *= i;
+  return r;
+}
+function nCr(n, r) {
+  if (!isInt(n) || !isInt(r) || n < 0 || r < 0 || r > n) throw new Error('domain');
+  r = Math.min(r, n - r);
+  var v = 1, i;
+  for (i = 1; i <= r; i++) v = v * (n - r + i) / i;
+  return Math.round(v);
+}
+function nPr(n, r) {
+  if (!isInt(n) || !isInt(r) || n < 0 || r < 0 || r > n) throw new Error('domain');
+  var v = 1, i;
+  for (i = 0; i < r; i++) v *= (n - i);
+  return v;
+}
+function clean(v) { return Math.abs(v) < 1e-15 ? 0 : v; }
+function toRad(x, mode) { return mode === 'DEG' ? x * Math.PI / 180 : mode === 'GRAD' ? x * Math.PI / 200 : x; }
+function fromRad(y, mode) { return mode === 'DEG' ? y * 180 / Math.PI : mode === 'GRAD' ? y * 200 / Math.PI : y; }
+
+function applyFn(name, x, mode) {
+  var c;
+  switch (name) {
+    case 'sin': return clean(Math.sin(toRad(x, mode)));
+    case 'cos': return clean(Math.cos(toRad(x, mode)));
+    case 'tan':
+      c = Math.cos(toRad(x, mode));
+      if (Math.abs(c) < 1e-15) throw new Error('undef');
+      return clean(Math.sin(toRad(x, mode)) / c);
+    case 'asin': if (Math.abs(x) > 1) throw new Error('domain'); return fromRad(Math.asin(x), mode);
+    case 'acos': if (Math.abs(x) > 1) throw new Error('domain'); return fromRad(Math.acos(x), mode);
+    case 'atan': return fromRad(Math.atan(x), mode);
+    case 'sinh': return Math.sinh(x);
+    case 'cosh': return Math.cosh(x);
+    case 'tanh': return Math.tanh(x);
+    case 'asinh': return Math.asinh(x);
+    case 'acosh': if (x < 1) throw new Error('domain'); return Math.acosh(x);
+    case 'atanh': if (Math.abs(x) >= 1) throw new Error('domain'); return Math.atanh(x);
+    case 'log': if (x <= 0) throw new Error('domain'); return Math.log10(x);
+    case 'ln': if (x <= 0) throw new Error('domain'); return Math.log(x);
+    case 'abs': return Math.abs(x);
+  }
+  throw new Error('syntax');
+}
+
+function evaluate(src, ctx) {
+  var toks = tokenize(src), pos = 0;
+  function peek() { return toks[pos]; }
+  function next() { return toks[pos++]; }
+  function startsPrimary(p) { return p && (p.t === 'num' || p.t === 'const' || p.t === 'func' || p.t === 'lp' || p.t === 'root'); }
+  function expression() {
+    var v = term(), p, op, r;
+    while ((p = peek()) && p.t === 'op' && (p.v === '+' || p.v === '−')) {
+      op = next().v; r = term();
+      v = op === '+' ? v + r : v - r;
+    }
+    return v;
+  }
+  function term() {
+    var v = unary(), p, op, r;
+    for (;;) {
+      p = peek();
+      if (p && p.t === 'op' && (p.v === '×' || p.v === '÷' || p.v === 'mod' || p.v === 'P' || p.v === 'C')) {
+        op = next().v; r = unary();
+        if (op === '×') v = v * r;
+        else if (op === '÷') { if (r === 0) throw new Error('div0'); v = v / r; }
+        else if (op === 'mod') { if (r === 0) throw new Error('div0'); v = v - r * Math.floor(v / r); }
+        else if (op === 'P') v = nPr(v, r);
+        else v = nCr(v, r);
+      } else if (startsPrimary(p)) {
+        v = v * unary();
+      } else break;
+    }
+    return v;
+  }
+  function unary() {
+    var p = peek();
+    if (p && p.t === 'op' && p.v === '−') { next(); return -unary(); }
+    if (p && p.t === 'op' && p.v === '+') { next(); return unary(); }
+    return power();
+  }
+  function power() {
+    var b = postfix(), p = peek(), e;
+    if (p && p.t === 'op' && p.v === '^') {
+      next(); e = unary();
+      if (b === 0 && e < 0) throw new Error('div0');
+      return Math.pow(b, e);
+    }
+    return b;
+  }
+  function postfix() {
+    var v = primary(), p, c;
+    while ((p = peek()) && p.t === 'post') {
+      c = next().v;
+      if (c === '%') v = v / 100;
+      else if (c === '²') v = v * v;
+      else if (c === '³') v = v * v * v;
+      else v = fact(v);
+    }
+    return v;
+  }
+  function primary() {
+    var p = next(), v, l, r;
+    if (!p) throw new Error('syntax');
+    if (p.t === 'num') {
+      v = Number(p.v.replace(/−/g, '-'));
+      if (isNaN(v)) throw new Error('syntax');
+      return v;
+    }
+    if (p.t === 'const') return p.v === 'π' ? Math.PI : p.v === 'e' ? Math.E : ctx.ans;
+    if (p.t === 'lp') {
+      v = expression(); r = next();
+      if (!r || r.t !== 'rp') throw new Error('syntax');
+      return v;
+    }
+    if (p.t === 'root') {
+      v = primary();
+      if (p.v === '√') { if (v < 0) throw new Error('domain'); return Math.sqrt(v); }
+      return Math.cbrt(v);
+    }
+    if (p.t === 'func') {
+      l = next();
+      if (!l || l.t !== 'lp') throw new Error('syntax');
+      v = expression(); r = next();
+      if (!r || r.t !== 'rp') throw new Error('syntax');
+      return applyFn(p.v, v, ctx.mode);
+    }
+    throw new Error('syntax');
+  }
+  var out = expression();
+  if (pos < toks.length) throw new Error('syntax');
+  if (typeof out !== 'number' || isNaN(out)) throw new Error('domain');
+  if (!isFinite(out)) throw new Error('overflow');
+  return out;
+}
+
+function sup(n) { return String(n).split('').map(function (ch) { return SUPD[ch] || ch; }).join(''); }
+function clean12(n) { return Number(n.toPrecision(12)); }
+function fmt(n) {
+  if (!isFinite(n)) return 'Error';
+  n = clean12(n);
+  if (n === 0) return '0';
+  var a = Math.abs(n), s, p;
+  if (a >= 1e12 || a < 1e-6) {
+    p = n.toExponential(9).split('e');
+    s = String(parseFloat(p[0])) + '×10' + sup(parseInt(p[1], 10));
+  } else {
+    p = String(n).split('.');
+    p[0] = p[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    s = p.join('.');
+  }
+  return s.replace(/^-/, '−');
+}
+function rawStr(v) { return String(clean12(v)).replace('e', 'E').replace(/-/g, '−'); }
+// ENGINE END
+
+  var exprEl = document.getElementById('expr');
+  var resEl = document.getElementById('result');
+  var chipsEl = document.getElementById('chips');
+  var keysEl = document.getElementById('keys');
+  var copyBtn = document.getElementById('copyBtn');
+  var histList = document.getElementById('histList');
+  var histEmpty = document.getElementById('histEmpty');
+
+  var expr = '', done = false, lastSrc = '', lastText = '0', lastRaw = '0';
+  var mode = 'DEG', second = false, hyp = false;
+  var ansVal = 0, memVal = 0, memSet = false;
+  var history = [];
+
+  try { history = JSON.parse(localStorage.getItem('kc-history') || '[]'); if (!Array.isArray(history)) history = []; } catch (e) { history = []; }
+  try { var sm = localStorage.getItem('kc-mode'); if (sm === 'DEG' || sm === 'RAD' || sm === 'GRAD') mode = sm; } catch (e2) {}
+  function saveHistory() { try { localStorage.setItem('kc-history', JSON.stringify(history.slice(0, 30))); } catch (e) {} }
+
+  var LAYOUT = [
+    ['2nd','mode'],['deg','mode'],['hyp','mode'],['mc','mem'],['mr','mem'],
+    ['m+','mem'],['m−','mem'],['pi','fn'],['e','fn'],['ans','fn'],
+    ['sin','fn'],['cos','fn'],['tan','fn'],['log','fn'],['ln','fn'],
+    ['sq','fn'],['rt','fn'],['pow','fn'],['inv','fn'],['fact','fn'],
+    ['(','fn'],[')','fn'],['%','fn'],['mod','fn'],['ncr','fn'],
+    ['7','num'],['8','num'],['9','num'],['÷','op'],['bs','clr'],
+    ['4','num'],['5','num'],['6','num'],['×','op'],['ac','clr'],
+    ['1','num'],['2','num'],['3','num'],['−','op'],['exp','fn'],
+    ['0','num'],['.','num'],['neg','num'],['+','op'],['=','eq']
+  ];
+  var STATIC = { pi: 'π', ans: 'Ans', pow: 'xʸ', fact: 'n!', bs: '⌫', ac: 'AC', neg: '±', exp: 'EXP', mc: 'MC', mr: 'MR', 'm+': 'M+', 'm−': 'M−', '2nd': '2nd', hyp: 'HYP' };
+  var ARIA = { pi: 'Pi', e: 'Euler number', ans: 'Previous answer', pow: 'Power', fact: 'Factorial', bs: 'Delete last', ac: 'Clear all', neg: 'Change sign', exp: 'Times ten to the power', '÷': 'Divide', '×': 'Multiply', '−': 'Subtract', '+': 'Add', '=': 'Equals', '%': 'Percent', mod: 'Modulo', mc: 'Memory clear', mr: 'Memory recall', 'm+': 'Memory add', 'm−': 'Memory subtract', deg: 'Angle unit', '2nd': 'Second functions', hyp: 'Hyperbolic functions' };
+
+  function label(id) {
+    switch (id) {
+      case 'sin': case 'cos': case 'tan': return id + (hyp ? 'h' : '') + (second ? '⁻¹' : '');
+      case 'log': return second ? '10ˣ' : 'log';
+      case 'ln': return second ? 'eˣ' : 'ln';
+      case 'sq': return second ? 'x³' : 'x²';
+      case 'rt': return second ? '∛' : '√';
+      case 'inv': return second ? '|x|' : '1/x';
+      case 'ncr': return second ? 'nPr' : 'nCr';
+      case 'deg': return mode;
+      default: return STATIC[id] || id;
+    }
+  }
+
+  var btns = {};
+  LAYOUT.forEach(function (k) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = k[1]; b.setAttribute('data-id', k[0]);
+    if (ARIA[k[0]]) b.setAttribute('aria-label', ARIA[k[0]]);
+    keysEl.appendChild(b); btns[k[0]] = b;
+  });
+  function updateLabels() {
+    Object.keys(btns).forEach(function (id) {
+      var t = label(id);
+      btns[id].textContent = t;
+      btns[id].classList.toggle('sm', t.length >= 4);
+    });
+    btns['2nd'].setAttribute('aria-pressed', second ? 'true' : 'false');
+    btns['hyp'].setAttribute('aria-pressed', hyp ? 'true' : 'false');
+    btns['2nd'].classList.add('sm');
+  }
+
+  function ctx() { return { mode: mode, ans: ansVal }; }
+  function safeTokens(s) { try { return tokenize(s); } catch (e) { return []; } }
+  function lastTok() { var t = safeTokens(expr); return t.length ? t[t.length - 1] : null; }
+  function isOperandEnd(t) {
+    if (!t) return false;
+    if (t.t === 'num') return !/E[+−]?$/.test(t.v);
+    return t.t === 'const' || t.t === 'rp' || t.t === 'post';
+  }
+  function cleanSrc(s) {
+    var t = safeTokens(s), open = 0, i, out;
+    while (t.length && t[t.length - 1].t === 'op') { s = s.slice(0, s.length - t[t.length - 1].v.length); t.pop(); }
+    for (i = 0; i < t.length; i++) { if (t[i].t === 'lp') open++; else if (t[i].t === 'rp') open--; }
+    out = s;
+    while (open-- > 0) out += ')';
+    return out;
+  }
+  function depth() { var t = safeTokens(expr), d = 0, i; for (i = 0; i < t.length; i++) { if (t[i].t === 'lp') d++; else if (t[i].t === 'rp') d--; } return d; }
+
+  function startNew() { if (done) { expr = ''; done = false; } }
+  function insertImplicit() { if (isOperandEnd(lastTok())) expr += '×'; }
+
+  function pressDigit(d) {
+    startNew();
+    var t = lastTok();
+    if (t && t.t === 'num') {
+      if (t.v === '0' && d !== '.') expr = expr.slice(0, -1) + d; else expr += d;
+    } else { insertImplicit(); expr += d; }
+  }
+  function pressDot() {
+    startNew();
+    var t = lastTok();
+    if (t && t.t === 'num') { if (/[.E]/.test(t.v)) return; expr += '.'; }
+    else { insertImplicit(); expr += '0.'; }
+  }
+  function pressOp(k) {
+    done = false;
+    var t = lastTok();
+    if (!t) { if (k === '−') expr = '−'; return; }
+    if (t.t === 'num' && /E[+−]?$/.test(t.v)) { if ((k === '+' || k === '−') && !/[+−]$/.test(t.v)) expr += k; return; }
+    if (t.t === 'lp' || t.t === 'root') { if (k === '−') expr += '−'; return; }
+    if (t.t === 'op') {
+      if (k === '−' && t.v !== '−' && t.v !== '+') { expr += '−'; return; }
+      while (t && t.t === 'op') { expr = expr.slice(0, expr.length - t.v.length); t = lastTok(); }
+      if (!t || t.t === 'lp' || t.t === 'root') { if (k === '−') expr += '−'; return; }
+      expr += k; return;
+    }
+    expr += k;
+  }
+  function pressPost(s) {
+    done = false;
+    if (!isOperandEnd(lastTok())) return;
+    expr += s;
+  }
+  function pressInv() {
+    var t = lastTok(), wasDone = done;
+    if (wasDone) { expr = '1÷(' + expr + ')'; done = false; return; }
+    if (t && t.t === 'num') { expr = expr.slice(0, expr.length - t.v.length) + '(1÷' + t.v + ')'; return; }
+    pressPost('^(−1)');
+  }
+  function pressFn(name) { startNew(); insertImplicit(); expr += name + '('; }
+  function pressConst(c) { startNew(); insertImplicit(); expr += c; }
+  function pressLP() { startNew(); insertImplicit(); expr += '('; }
+  function pressRP() { done = false; if (depth() <= 0 || !isOperandEnd(lastTok())) return; expr += ')'; }
+  function pressExp() {
+    var t = lastTok();
+    done = false;
+    if (t && t.t === 'num' && t.v.indexOf('E') === -1) expr += 'E';
+  }
+  function pressNeg() {
+    var m;
+    done = false;
+    if (!expr) { expr = '−'; return; }
+    m = /^−(\d+\.?\d*(?:E[+−]?\d+)?|\.\d+)$/.exec(expr);
+    if (m) { expr = m[1]; return; }
+    m = /\(−(\d+\.?\d*(?:E[+−]?\d+)?|\.\d+)\)$/.exec(expr);
+    if (m) { expr = expr.slice(0, m.index) + m[1]; return; }
+    m = /(\d+\.?\d*(?:E[+−]?\d+)?|\.\d+)$/.exec(expr);
+    if (m) { expr = expr.slice(0, m.index) + '(−' + m[1] + ')'; }
+  }
+  function pressBack() {
+    done = false;
+    var t = lastTok(), p;
+    if (!t || t.t === 'num') { expr = expr.slice(0, -1); return; }
+    expr = expr.slice(0, expr.length - t.v.length);
+    if (t.t === 'lp') {
+      p = lastTok();
+      if (p && (p.t === 'func' || p.t === 'root')) expr = expr.slice(0, expr.length - p.v.length);
+    }
+  }
+  function currentValue() {
+    if (done) return ansVal;
+    var s = cleanSrc(expr);
+    if (!s) return null;
+    try { return evaluate(s, ctx()); } catch (e) { return null; }
+  }
+  function negWrap(v) { var r = rawStr(v); return r.charAt(0) === '−' ? '(' + r + ')' : r; }
+
+  var MESSAGES = {
+    syntax: 'Check the expression',
+    div0: 'Cannot divide by zero',
+    domain: 'Value is outside what this function accepts',
+    undef: 'Undefined at this angle',
+    overflow: 'Number is too large'
+  };
+
+  function pretty(s) {
+    return s.replace(/(\d+)(\.\d*)?(E[+−]?\d*)?/g, function (m, a, b, c) {
+      return a.replace(/\B(?=(\d{3})+(?!\d))/g, ',') + (b || '') + (c || '');
+    });
+  }
+
+  function sizeClass(text) { return text.length > 14 ? ' small' : text.length > 10 ? ' mid' : ''; }
+
+  function renderStatus() {
+    chipsEl.innerHTML = '';
+    function chip(t, on) { var s = document.createElement('span'); s.className = 'chip' + (on ? ' on' : ''); s.textContent = t; s.style.marginRight = '6px'; chipsEl.appendChild(s); }
+    chip(mode, true);
+    if (second) chip('2nd', true);
+    if (hyp) chip('HYP', true);
+    if (memSet) chip('M', true);
+  }
+
+  function render() {
+    var text = '0', v;
+    exprEl.textContent = pretty(done ? lastSrc + ' =' : expr);
+    exprEl.scrollLeft = exprEl.scrollWidth;
+    if (done) {
+      text = fmt(ansVal); lastRaw = String(clean12(ansVal));
+    } else if (expr) {
+      if (/^−?(\d+\.?\d*|\.\d+)$/.test(expr)) { text = pretty(expr); lastRaw = expr.replace('−', '-'); }
+      else {
+        try { v = evaluate(cleanSrc(expr), ctx()); text = fmt(v); lastRaw = String(clean12(v)); }
+        catch (e) { text = lastText; }
+      }
+    } else { lastRaw = '0'; }
+    lastText = text;
+    resEl.textContent = text;
+    resEl.className = 'result' + sizeClass(text);
+    renderStatus();
+  }
+
+  function showError(msg, src) {
+    exprEl.textContent = pretty(src);
+    resEl.textContent = msg;
+    resEl.className = 'result err';
+  }
+
+  function equals() {
+    var src = cleanSrc(expr), v, shown, raw;
+    if (!expr || done) return;
+    try {
+      v = evaluate(src, ctx());
+      shown = fmt(v); raw = rawStr(v);
+      history.unshift({ e: src, r: shown, raw: raw });
+      history = history.slice(0, 30);
+      saveHistory(); renderHistory();
+      ansVal = clean12(v); lastSrc = src; expr = raw; done = true;
+      render();
+    } catch (e) {
+      showError(MESSAGES[e.message] || MESSAGES.syntax, src);
+    }
+  }
+
+  function memAdd(sign) {
+    var v = currentValue();
+    if (v === null) { showError('Nothing to store yet', expr); return; }
+    memVal = (memSet ? memVal : 0) + sign * v; memSet = true;
+    render();
+  }
+
+  var RESETS = { sin: 1, cos: 1, tan: 1, log: 1, ln: 1, sq: 1, rt: 1, inv: 1, ncr: 1 };
+
+  function press(id) {
+    var wasSecond = second;
+    if (/^[0-9]$/.test(id)) pressDigit(id);
+    else switch (id) {
+      case '.': pressDot(); break;
+      case '+': case '−': case '×': case '÷': pressOp(id); break;
+      case 'pow': pressOp('^'); break;
+      case 'mod': pressOp('mod'); break;
+      case 'ncr': pressOp(second ? 'P' : 'C'); break;
+      case '(': pressLP(); break;
+      case ')': pressRP(); break;
+      case '%': pressPost('%'); break;
+      case 'fact': pressPost('!'); break;
+      case 'sq': pressPost(second ? '³' : '²'); break;
+      case 'inv': if (second) pressFn('abs'); else pressInv(); break;
+      case 'sin': case 'cos': case 'tan': pressFn((second ? 'a' : '') + id + (hyp ? 'h' : '')); break;
+      case 'log': pressFn(second ? '10^' : 'log'); break;
+      case 'ln': pressFn(second ? 'e^' : 'ln'); break;
+      case 'rt': pressFn(second ? '∛' : '√'); break;
+      case 'pi': pressConst('π'); break;
+      case 'e': pressConst('e'); break;
+      case 'ans': pressConst('Ans'); break;
+      case 'exp': pressExp(); break;
+      case 'neg': pressNeg(); break;
+      case 'bs': pressBack(); break;
+      case 'ac': expr = ''; done = false; break;
+      case '=': equals(); return;
+      case '2nd': second = !second; updateLabels(); render(); return;
+      case 'hyp': hyp = !hyp; updateLabels(); render(); return;
+      case 'deg':
+        mode = mode === 'DEG' ? 'RAD' : mode === 'RAD' ? 'GRAD' : 'DEG';
+        try { localStorage.setItem('kc-mode', mode); } catch (e) {}
+        updateLabels(); render(); return;
+      case 'mc': memVal = 0; memSet = false; render(); return;
+      case 'mr':
+        if (memSet) { startNew(); insertImplicit(); expr += negWrap(memVal); }
+        break;
+      case 'm+': memAdd(1); return;
+      case 'm−': memAdd(-1); return;
+    }
+    if (RESETS[id] && (wasSecond || hyp)) { second = false; hyp = false; updateLabels(); }
+    render();
+  }
+
+  function renderHistory() {
+    histList.innerHTML = '';
+    histEmpty.hidden = history.length > 0;
+    history.forEach(function (h) {
+      var li = document.createElement('li'), b = document.createElement('button');
+      var a = document.createElement('span'), r = document.createElement('span');
+      b.type = 'button';
+      a.className = 'h-expr'; a.textContent = pretty(h.e) + ' =';
+      r.className = 'h-res'; r.textContent = h.r;
+      b.appendChild(a); b.appendChild(r);
+      b.addEventListener('click', function () {
+        var raw = String(h.raw).replace(/-/g, '−').replace('e', 'E'), n = Number(raw.replace(/−/g, '-'));
+        if (isNaN(n)) return;
+        expr = raw; ansVal = n; lastSrc = h.e; done = true; render();
+      });
+      li.appendChild(b); histList.appendChild(li);
+    });
+  }
+
+  keysEl.addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-id]');
+    if (b) press(b.getAttribute('data-id'));
+  });
+  document.getElementById('clearHist').addEventListener('click', function () { history = []; saveHistory(); renderHistory(); });
+
+  copyBtn.addEventListener('click', function () {
+    var ok = function () { copyBtn.textContent = 'Copied'; setTimeout(function () { copyBtn.textContent = 'Copy'; }, 1200); };
+    var fallback = function () {
+      try { var r = document.createRange(); r.selectNodeContents(resEl); var s = window.getSelection(); s.removeAllRanges(); s.addRange(r); } catch (e) {}
+      copyBtn.textContent = 'Press copy'; setTimeout(function () { copyBtn.textContent = 'Copy'; }, 1500);
+    };
+    try { navigator.clipboard.writeText(lastRaw).then(ok, fallback); } catch (e) { fallback(); }
+  });
+
+  var KEYMAP = { '.': '.', '+': '+', '-': '−', '*': '×', '/': '÷', '^': 'pow', '(': '(', ')': ')', '%': '%', '!': 'fact', 'Enter': '=', '=': '=', 'Backspace': 'bs', 'Escape': 'ac', 's': 'sin', 'c': 'cos', 't': 'tan', 'l': 'log', 'n': 'ln', 'r': 'rt', 'p': 'pi', 'e': 'e' };
+  document.addEventListener('keydown', function (e) {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    var id = /^[0-9]$/.test(e.key) ? e.key : KEYMAP[e.key];
+    if (!id) return;
+    e.preventDefault();
+    press(id);
+  });
+
+  updateLabels();
+  renderHistory();
+  render();
+  if ('serviceWorker' in navigator) { window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); }); }
+})();
+</script>
+
+</body>
+</html>
